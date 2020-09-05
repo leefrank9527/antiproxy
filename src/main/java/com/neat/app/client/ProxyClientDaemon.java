@@ -27,6 +27,7 @@ public class ProxyClientDaemon implements Runnable {
     private String proxyServerAddress = null;
     private URI proxyServerUriHeartbeat;
     private AtomicLong idlePrintLength = new AtomicLong(0);
+    private long lastPrintTime = System.currentTimeMillis();
 
     @Override
     public void run() {
@@ -204,10 +205,16 @@ public class ProxyClientDaemon implements Runnable {
     }
 
     private void printProgressFlag() {
+        if (System.currentTimeMillis() - lastPrintTime < 500) {
+            return;
+        }
+
         if (idlePrintLength.getAndIncrement() % 2 == 0) {
             System.out.print("\r=-=");
         } else {
             System.out.print("\r^-^");
         }
+
+        lastPrintTime = System.currentTimeMillis();
     }
 }

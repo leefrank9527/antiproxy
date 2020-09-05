@@ -7,14 +7,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
 @RestController
 public class ProxyController {
     @RequestMapping(path = ProxyConstants.CONTROLLER_SERVICE_HEARTBEAT, method = {RequestMethod.POST, RequestMethod.GET})
     public List<MsgPackage> heartbeat() {
-//        List<String> list = MsgQueue.listMsg().stream().map(MsgPackage::getFirstLine).collect(Collectors.toList());
-//
-//        return String.join("\r\n", list);
         return MsgQueue.listMsg();
     }
 

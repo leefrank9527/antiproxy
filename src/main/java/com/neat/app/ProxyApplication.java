@@ -18,7 +18,7 @@ import java.util.Arrays;
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.neat.app.server.controller"})
 @EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
-public class ProxyApplication {
+public class ProxyApplication implements CommandLineRunner {
     public static void main(String[] args) {
         try {
             SpringApplication.run(ProxyApplication.class, args);
@@ -39,14 +39,27 @@ public class ProxyApplication {
                 System.out.println(beanName);
             }
 
-            Thread northDaemon = new Thread(new ProxyServerDaemonNorth());
-            northDaemon.start();
+            Arrays.stream(args).forEach(System.out::println);
 
-            Thread southDaemon = new Thread(new ProxyServerDaemonSouth());
-            southDaemon.start();
+            /*Launch server daemon threads*/
+            if (args.length == 0 || args[0].equalsIgnoreCase("server+client") || args[0].equalsIgnoreCase("server")) {
+                Thread northDaemon = new Thread(new ProxyServerDaemonNorth());
+                northDaemon.start();
 
-            Thread clientDaemon=new Thread(new ProxyClientDaemon());
-            clientDaemon.start();
+                Thread southDaemon = new Thread(new ProxyServerDaemonSouth());
+                southDaemon.start();
+            }
+
+            /*Launch client daemon threads*/
+            if (args.length == 0 || args[0].equalsIgnoreCase("server+client") || args[0].equalsIgnoreCase("client")) {
+                Thread clientDaemon = new Thread(new ProxyClientDaemon());
+                clientDaemon.start();
+            }
         };
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        Arrays.stream(args).forEach(System.out::println);
     }
 }

@@ -39,10 +39,18 @@ public class ProxyClientAgent {
     }
 
     private boolean init() {
+        boolean isProxyEnabled = false;
         Socket northSocket = getSocketFromUrl(msgPackage.getUrl());
         if (northSocket == null) {
             log.debug("Not able to find address of URL: {}, try to use proxy", msgPackage.getUrl());
-            northSocket = new Socket(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort)));
+//            northSocket = new Socket(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort)));
+            try {
+                northSocket = new Socket(proxyHost, proxyPort);
+                isProxyEnabled = true;
+            } catch (IOException e) {
+                log.debug("Failed to connect to Original Proxy Server: {}:{}", proxyHost, proxyPort);
+                return false;
+            }
         }
 
         Socket southSocket;
@@ -60,8 +68,8 @@ public class ProxyClientAgent {
             InputStream southInputStream = southSocket.getInputStream();
             OutputStream southOutputStream = southSocket.getOutputStream();
 
-            //Feedback the message ID
-            IOHelper.writeln(southOutputStream, Long.toString(msgPackage.getId()));
+            //Feedback the message ID and Proxy Enabled Flag
+            IOHelper.writeln(southOutputStream, msgPackage.getId() + " " + isProxyEnabled);
 
             Socket finalNorthSocket = northSocket;
             ProxySwitcher switcher = new ProxySwitcher("ProxyClient: " + msgPackage.getUrl(), northInputStream, northOutputStream, southInputStream, southOutputStream, () -> {

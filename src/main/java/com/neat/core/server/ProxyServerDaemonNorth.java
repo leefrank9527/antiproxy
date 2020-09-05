@@ -35,13 +35,15 @@ public class ProxyServerDaemonNorth implements Runnable {
                 Socket northSocket = serverSocket.accept();
                 InputStream northInputStream = northSocket.getInputStream();
                 OutputStream northOutputStream = northSocket.getOutputStream();
-                String idLine = IOHelper.readln(northInputStream);
-                log.debug("id: {}", idLine);
-                long id = Long.parseLong(idLine.trim());
+                String connectLine = IOHelper.readln(northInputStream).trim();
+                log.debug("connectLine: {}", connectLine);
+                String[] items = connectLine.split(" ");
+                long id = Long.parseLong(items[0]);
+                boolean isProxyEnabled = Boolean.parseBoolean(items[1]);
 
                 MsgPackage msg = MsgQueue.remove(id);
 
-                if (msg.getMethod().equalsIgnoreCase(ProxyConstants.METHOD_HTTPS_CONNECT)) { //Response for HTTPS
+                if (msg.getMethod().equalsIgnoreCase(ProxyConstants.METHOD_HTTPS_CONNECT) && !isProxyEnabled) { //Response for HTTPS
                     while (true) {
                         String headerLine = IOHelper.readln(msg.getInputStream());
                         if (IOHelper.isNull(headerLine)) {
@@ -53,7 +55,6 @@ public class ProxyServerDaemonNorth implements Runnable {
                     IOHelper.writeln(msg.getOutputStream(), "HTTP/1.1 200 Connection Established");
                     IOHelper.writeln(msg.getOutputStream(), "Proxy-agent: Netscape-Proxy/1.1");
                     IOHelper.writeln(msg.getOutputStream(), "");
-
                 } else { //Forward HTTP first request line
                     IOHelper.writeln(northOutputStream, msg.getFirstLine());
                 }
