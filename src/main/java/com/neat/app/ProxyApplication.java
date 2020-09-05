@@ -1,5 +1,6 @@
-package com.neat.app.server;
+package com.neat.app;
 
+import com.neat.app.client.ProxyClientDaemon;
 import com.neat.core.server.ProxyServerDaemonNorth;
 import com.neat.core.server.ProxyServerDaemonSouth;
 import org.springframework.boot.CommandLineRunner;
@@ -15,12 +16,12 @@ import org.springframework.context.annotation.ComponentScan;
 import java.util.Arrays;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.neat.proxy.controller"})
+@ComponentScan(basePackages = {"com.neat.app.server.controller"})
 @EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
-public class ProxyServerApplication {
+public class ProxyApplication {
     public static void main(String[] args) {
         try {
-            SpringApplication.run(ProxyServerApplication.class, args);
+            SpringApplication.run(ProxyApplication.class, args);
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -43,6 +44,9 @@ public class ProxyServerApplication {
 
             Thread southDaemon = new Thread(new ProxyServerDaemonSouth());
             southDaemon.start();
+
+            Thread clientDaemon=new Thread(new ProxyClientDaemon());
+            clientDaemon.start();
         };
     }
 }

@@ -2,6 +2,7 @@ package com.neat.core.server;
 
 import com.neat.core.MsgPackage;
 import com.neat.core.MsgQueue;
+import com.neat.core.ProxyConstants;
 import com.neat.util.IOHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,7 @@ import java.util.ArrayList;
 @SuppressWarnings("InfiniteLoopStatement")
 public class ProxyServerDaemonSouth implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ProxyServerDaemonNorth.class);
-    private static final int port = 3082;
+    private static final int port = ProxyConstants.PORT_FOR_BROWSER;
 
     @Override
     public void run() {

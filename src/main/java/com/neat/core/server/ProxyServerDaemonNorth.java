@@ -2,6 +2,7 @@ package com.neat.core.server;
 
 import com.neat.core.MsgPackage;
 import com.neat.core.MsgQueue;
+import com.neat.core.ProxyConstants;
 import com.neat.core.ProxySwitcher;
 import com.neat.util.IOHelper;
 import org.slf4j.Logger;
@@ -19,7 +20,7 @@ import java.util.List;
 public class ProxyServerDaemonNorth implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ProxyServerDaemonNorth.class);
 
-    private static final int port = 3081;
+    private static final int port = ProxyConstants.PORT_FOR_PROXY_CLIENT;
 
     @Override
     public void run() {
@@ -42,7 +43,7 @@ public class ProxyServerDaemonNorth implements Runnable {
 
                 MsgPackage msg = MsgQueue.remove(id);
 
-                if (msg.getMethod().equalsIgnoreCase("CONNECT")) { //Response for HTTPS
+                if (msg.getMethod().equalsIgnoreCase(ProxyConstants.METHOD_HTTPS_CONNECT)) { //Response for HTTPS
                     List<String> headers = new ArrayList<>();
                     while (true) {
                         String headerLine = IOHelper.readln(msg.getInputStream());
