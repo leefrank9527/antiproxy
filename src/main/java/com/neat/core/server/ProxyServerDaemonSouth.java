@@ -12,7 +12,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 
 @SuppressWarnings("InfiniteLoopStatement")
 public class ProxyServerDaemonSouth implements Runnable {
@@ -36,7 +35,7 @@ public class ProxyServerDaemonSouth implements Runnable {
                 OutputStream southOutputStream = southSocket.getOutputStream();
 
                 String firstLine = IOHelper.readln(southInputStream);
-                MsgPackage msg = MsgQueue.push(firstLine.trim(), new ArrayList<>(), southInputStream, southOutputStream);
+                MsgPackage msg = MsgQueue.push(firstLine.trim(), southSocket, southInputStream, southOutputStream);
             } catch (Throwable e) {
                 e.printStackTrace();
             }

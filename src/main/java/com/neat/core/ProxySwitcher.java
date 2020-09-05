@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 public class ProxySwitcher implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ProxySwitcher.class);
@@ -15,35 +17,53 @@ public class ProxySwitcher implements Runnable {
     private final OutputStream northOutputStream;
     private final InputStream southInputStream;
     private final OutputStream southOutputStream;
+    private final Callable<Boolean> callback;
 
-    public ProxySwitcher(String switcherName, InputStream northInputStream, OutputStream northOutputStream, InputStream southInputStream, OutputStream southOutputStream) {
+    public ProxySwitcher(String switcherName, InputStream northInputStream, OutputStream northOutputStream, InputStream southInputStream, OutputStream southOutputStream, Callable<Boolean> callback) {
         this.switcherName = switcherName;
         this.northInputStream = northInputStream;
         this.northOutputStream = northOutputStream;
         this.southInputStream = southInputStream;
         this.southOutputStream = southOutputStream;
+        this.callback = callback;
+    }
+
+    //Close
+    public void callback(boolean processStatus) {
+        if (!processStatus) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(500);
+            } catch (InterruptedException e) {
+                log.error(e.getMessage());
+            }
+        }
+
+        //Callback
+        try {
+            callback.call();
+        } catch (Exception e) {
+            log.error(switcherName, e);
+        }
     }
 
     @Override
     public void run() {
-        Runnable pipeA = () -> {
+        Thread tA = new Thread(() -> {
             try {
                 IOHelper.copy(southInputStream, northOutputStream);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(switcherName + " copy from south to north", e);
+                callback(false);
             }
-        };
-
-        Runnable pipeB = () -> {
+        });
+        Thread tB = new Thread(() -> {
             try {
                 IOHelper.copy(northInputStream, southOutputStream);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(switcherName + " copy from north to south", e);
+                callback(false);
             }
-        };
-
-        Thread tA = new Thread(pipeA);
-        Thread tB = new Thread(pipeB);
+        });
 
         tA.start();
         tB.start();
@@ -52,29 +72,11 @@ public class ProxySwitcher implements Runnable {
             tA.join();
             tB.join();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.error(switcherName, e);
         }
 
-        log.debug("Finished");
-    }
+        callback(true);
 
-    public String getSwitcherName() {
-        return switcherName;
-    }
-
-    public InputStream getNorthInputStream() {
-        return northInputStream;
-    }
-
-    public OutputStream getNorthOutputStream() {
-        return northOutputStream;
-    }
-
-    public InputStream getSouthInputStream() {
-        return southInputStream;
-    }
-
-    public OutputStream getSouthOutputStream() {
-        return southOutputStream;
+        log.debug("Finished:{}", switcherName);
     }
 }

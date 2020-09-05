@@ -33,14 +33,9 @@ public class ProxyClientAgent {
         this.msgPackage = msgPackage;
     }
 
-    public static ProxyClientAgent launchSwitcher(String proxyHost, int proxyPort, String southHost, int southPort, MsgPackage msgPackage) {
+    public static boolean launchSwitcher(String proxyHost, int proxyPort, String southHost, int southPort, MsgPackage msgPackage) {
         ProxyClientAgent switcher = new ProxyClientAgent(proxyHost, proxyPort, southHost, southPort, msgPackage);
-        boolean initResult = switcher.init();
-        if (!initResult) {
-            return null;
-        }
-
-        return switcher;
+        return switcher.init();
     }
 
     private boolean init() {
@@ -68,11 +63,24 @@ public class ProxyClientAgent {
             //Feedback the message ID
             IOHelper.writeln(southOutputStream, Long.toString(msgPackage.getId()));
 
-            ProxySwitcher switcher = new ProxySwitcher("ProxyClient: " + msgPackage.getUrl(), northInputStream, northOutputStream, southInputStream, southOutputStream);
+            Socket finalNorthSocket = northSocket;
+            ProxySwitcher switcher = new ProxySwitcher("ProxyClient: " + msgPackage.getUrl(), northInputStream, northOutputStream, southInputStream, southOutputStream, () -> {
+                try {
+                    finalNorthSocket.close();
+                } catch (IOException e) {
+                    log.error("Failed to close north socket", e);
+                }
+                try {
+                    southSocket.close();
+                } catch (IOException e) {
+                    log.error("Failed to close south socket", e);
+                }
+                return true;
+            });
             Thread switcherProcessor = new Thread(switcher);
             switcherProcessor.start();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Initial proxy client failed.");
             return false;
         }
 

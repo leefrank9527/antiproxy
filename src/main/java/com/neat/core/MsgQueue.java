@@ -2,6 +2,7 @@ package com.neat.core;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,14 +11,18 @@ import java.util.Map;
 public class MsgQueue {
     private static final Map<Long, MsgPackage> queue = new HashMap<>();
 
-    synchronized public static MsgPackage push(String firstLine, List<String> headers, InputStream inputStream, OutputStream outputStream) {
+    public static MsgPackage push(String firstLine, Socket socket, InputStream inputStream, OutputStream outputStream) {
         MsgPackage msg = new MsgPackage();
         msg.setFirstLine(firstLine);
-        msg.setHeaders(headers);
+        msg.setSocket(socket);
         msg.setInputStream(inputStream);
         msg.setOutputStream(outputStream);
-        queue.put(msg.getId(), msg);
 
+        return push(msg);
+    }
+
+    synchronized public static MsgPackage push(MsgPackage msg) {
+        queue.put(msg.getId(), msg);
         return msg;
     }
 

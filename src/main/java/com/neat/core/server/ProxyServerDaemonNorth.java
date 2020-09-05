@@ -13,8 +13,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 @SuppressWarnings("InfiniteLoopStatement")
 public class ProxyServerDaemonNorth implements Runnable {
@@ -44,15 +42,13 @@ public class ProxyServerDaemonNorth implements Runnable {
                 MsgPackage msg = MsgQueue.remove(id);
 
                 if (msg.getMethod().equalsIgnoreCase(ProxyConstants.METHOD_HTTPS_CONNECT)) { //Response for HTTPS
-                    List<String> headers = new ArrayList<>();
                     while (true) {
                         String headerLine = IOHelper.readln(msg.getInputStream());
                         if (IOHelper.isNull(headerLine)) {
                             break;
                         }
-                        headers.add(headerLine);
+                        log.debug(headerLine.trim());
                     }
-                    msg.setHeaders(headers);
 
                     IOHelper.writeln(msg.getOutputStream(), "HTTP/1.1 200 Connection Established");
                     IOHelper.writeln(msg.getOutputStream(), "Proxy-agent: Netscape-Proxy/1.1");
@@ -62,7 +58,20 @@ public class ProxyServerDaemonNorth implements Runnable {
                     IOHelper.writeln(northOutputStream, msg.getFirstLine());
                 }
 
-                ProxySwitcher switcher = new ProxySwitcher("ProxyServer: " + msg.getUrl(), northInputStream, northOutputStream, msg.getInputStream(), msg.getOutputStream());
+                ProxySwitcher switcher = new ProxySwitcher("ProxyServer: " + msg.getUrl(), northInputStream, northOutputStream, msg.getInputStream(), msg.getOutputStream(), () -> {
+                    try {
+                        northSocket.close();
+                    } catch (IOException e) {
+                        log.error("Failed to close north socket", e);
+                    }
+                    try {
+                        msg.getSocket().close();
+                    } catch (IOException e) {
+                        log.error("Failed to close south socket", e);
+                    }
+                    return true;
+
+                });
                 Thread switcherProcessor = new Thread(switcher);
                 switcherProcessor.start();
             } catch (Throwable e) {

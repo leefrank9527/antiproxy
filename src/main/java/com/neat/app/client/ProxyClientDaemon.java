@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @SuppressWarnings("all")
 public class ProxyClientDaemon implements Runnable {
     private String EXCUTE_STATUS_RUNNING = "RUNNING";
-    private String EXCUTE_STATUS_FINISHED = "FINISHED";
+    private String EXCUTE_STATUS_BAD_DONE = "BAD_FINISHED";
 
     private String proxyServerAddress = null;
     private URI proxyServerUriHeartbeat;
@@ -30,7 +30,7 @@ public class ProxyClientDaemon implements Runnable {
 
     @Override
     public void run() {
-        //Detecting the IP4 Address to ProxyServer
+        /*Detecting the IP4 Address to ProxyServer*/
         while (proxyServerAddress == null) {
             try {
                 proxyServerAddress = detectProxyServerAddress();
@@ -45,7 +45,7 @@ public class ProxyClientDaemon implements Runnable {
             }
         }
 
-        //Initialing the heartbeat service url to ProxyServer
+        /*Initialing the heartbeat service url to ProxyServer*/
         try {
             proxyServerUriHeartbeat = new URI(String.format("http://%s:%d/%s", proxyServerAddress, ProxyConstants.PORT_FOR_PROXY_SERVER, ProxyConstants.CONTROLLER_SERVICE_HEARTBEAT));
         } catch (URISyntaxException e) {
@@ -76,8 +76,8 @@ public class ProxyClientDaemon implements Runnable {
     private String detectProxyServerAddress() throws InterruptedException, ExecutionException {
         System.out.println("Detecting IP Address of ProxyServer >>>");
         Map<String, Future<Boolean>> mapExtutorResult = new HashMap<>();
-//        ExecutorService executorService = new ThreadPoolExecutor(1, 50, 500L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
-        ExecutorService executorService = Executors.newFixedThreadPool(50);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(255);
         for (int lastPartOfIP = 2; lastPartOfIP < 255; lastPartOfIP++) {
             printProgressFlag();
 
@@ -101,20 +101,19 @@ public class ProxyClientDaemon implements Runnable {
             if (scanResult.equals(EXCUTE_STATUS_RUNNING)) {
                 TimeUnit.MILLISECONDS.sleep(200);
                 continue;
-            } else if (scanResult.equals(EXCUTE_STATUS_FINISHED)) {
+            } else if (scanResult.equals(EXCUTE_STATUS_BAD_DONE)) {
+                executorService.shutdown();
+                if (!executorService.isShutdown()) {
+                    executorService.awaitTermination(200, TimeUnit.MILLISECONDS);
+                }
                 break;
             } else {
+                if (!executorService.awaitTermination(200, TimeUnit.MILLISECONDS)) {
+                    executorService.shutdownNow();
+                }
                 detectedIP = scanResult;
                 break;
             }
-        }
-
-        if (!executorService.isTerminated()) {
-            executorService.awaitTermination(1, TimeUnit.SECONDS);
-        }
-
-        if (!executorService.isShutdown()) {
-            executorService.shutdown();
         }
 
         return detectedIP;
@@ -137,7 +136,7 @@ public class ProxyClientDaemon implements Runnable {
         if (detectedIP != null) {
             return detectedIP;
         } else if (isDone) {
-            return EXCUTE_STATUS_FINISHED;
+            return EXCUTE_STATUS_BAD_DONE;
         } else {
             return EXCUTE_STATUS_RUNNING;
         }
@@ -145,7 +144,6 @@ public class ProxyClientDaemon implements Runnable {
 
     private boolean detectAddress(String hostIP) {
         String detectUrl = String.format("http://%s:%d/%s", hostIP, ProxyConstants.PORT_FOR_PROXY_SERVER, ProxyConstants.CONTROLLER_SERVICE_DETECT);
-//        System.out.println(detectUrl);
 
         HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(detectUrl))
                 .timeout(Duration.ofSeconds(30))
@@ -200,20 +198,12 @@ public class ProxyClientDaemon implements Runnable {
         }
 
         for (MsgPackage msg : httpRequestList) {
-            ProxyClientAgent.launchSwitcher("wlgproxyforservers.dia.govt.nz", 8080, proxyServerAddress, ProxyConstants.PORT_FOR_PROXY_CLIENT, msg);
+            boolean result = ProxyClientAgent.launchSwitcher("wlgproxyforservers.dia.govt.nz", 8080, proxyServerAddress, ProxyConstants.PORT_FOR_PROXY_CLIENT, msg);
+            System.out.println("Launch " + msg.getUrl() + " " + result);
         }
     }
 
     private void printProgressFlag() {
-        //            if (idlePrintLength == 120) {
-//                System.out.println(".");
-//                idlePrintLength = 1;
-//            } else {
-//                System.out.print(".");
-//                idlePrintLength++;
-//            }
-
-
         if (idlePrintLength.getAndIncrement() % 2 == 0) {
             System.out.print("\r=-=");
         } else {

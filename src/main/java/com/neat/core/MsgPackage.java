@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -11,7 +12,8 @@ public class MsgPackage {
     private static final AtomicLong idGenerator = new AtomicLong(0);
     private long id;
     private String firstLine;
-    private List<String> headers;
+    @JsonIgnore
+    private Socket socket;
     @JsonIgnore
     private InputStream inputStream;
     @JsonIgnore
@@ -39,12 +41,15 @@ public class MsgPackage {
         this.firstLine = firstLine;
     }
 
-    public List<String> getHeaders() {
-        return headers;
+
+    @JsonIgnore
+    public Socket getSocket() {
+        return socket;
     }
 
-    public void setHeaders(List<String> headers) {
-        this.headers = headers;
+    @JsonIgnore
+    public void setSocket(Socket socket) {
+        this.socket = socket;
     }
 
     @JsonIgnore
@@ -96,8 +101,9 @@ public class MsgPackage {
             return String.format("http://%s", items[1]);
         }
     }
+
     @JsonIgnore
-    public String getMethod(){
+    public String getMethod() {
         if (firstLine == null) {
             return null;
         }
@@ -109,8 +115,9 @@ public class MsgPackage {
 
         return items[0];
     }
+
     @JsonIgnore
-    public String getVersion(){
+    public String getVersion() {
         if (firstLine == null) {
             return null;
         }
