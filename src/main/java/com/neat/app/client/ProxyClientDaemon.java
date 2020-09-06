@@ -52,12 +52,9 @@ public class ProxyClientDaemon implements Runnable {
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
+
+        System.out.println();
         System.out.println("Proxy Server IP detected: " + proxyServerAddress);
-
-
-        System.out.println("^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^");
-        System.out.println("-----------------------------------------Proxy Agent Initialed--------------------------------------------------------");
-        System.out.println("^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^");
 
         while (true) {
             try {
@@ -80,7 +77,7 @@ public class ProxyClientDaemon implements Runnable {
 
         ExecutorService executorService = Executors.newFixedThreadPool(255);
         for (int lastPartOfIP = 2; lastPartOfIP < 255; lastPartOfIP++) {
-            printProgressFlag();
+            printProgressFlag("Detecting Server IP");
 
             String hostIP = String.format("192.168.1.%d", lastPartOfIP);
 
@@ -96,7 +93,7 @@ public class ProxyClientDaemon implements Runnable {
 
         String detectedIP = null;
         while (true) {
-            printProgressFlag();
+            printProgressFlag("Detecting Server IP");
 
             String scanResult = scanExcutingPool(mapExtutorResult);
             if (scanResult.equals(EXCUTE_STATUS_RUNNING)) {
@@ -194,7 +191,7 @@ public class ProxyClientDaemon implements Runnable {
         });
 
         if (httpRequestList == null || httpRequestList.size() == 0) {
-            printProgressFlag();
+            printProgressFlag("Heartbeat");
             return;
         }
 
@@ -204,16 +201,19 @@ public class ProxyClientDaemon implements Runnable {
         }
     }
 
-    private void printProgressFlag() {
+    private void printProgressFlag(String prefix) {
         if (System.currentTimeMillis() - lastPrintTime < 500) {
             return;
         }
 
+        String info = "";
         if (idlePrintLength.getAndIncrement() % 2 == 0) {
-            System.out.print("\r=-=");
+            info = "=-=";
         } else {
-            System.out.print("\r^-^");
+            info = "^-^";
         }
+
+        System.out.print(String.format("\r%s: %s", prefix, info));
 
         lastPrintTime = System.currentTimeMillis();
     }

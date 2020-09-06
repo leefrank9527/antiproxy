@@ -1,8 +1,10 @@
 package com.neat.app;
 
 import com.neat.app.client.ProxyClientDaemon;
+import com.neat.app.server.controller.ProxyController;
 import com.neat.core.server.ProxyServerDaemonNorth;
 import com.neat.core.server.ProxyServerDaemonSouth;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -14,14 +16,32 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.neat.app.server.controller"})
 @EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
 public class ProxyApplication implements CommandLineRunner {
+    private static final String PRINTLN_SEPARATOR_LINE = "^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^ ^_^";
+    @Autowired
+    private ProxyController proxyController;
+
     public static void main(String[] args) {
         try {
-            SpringApplication.run(ProxyApplication.class, args);
+            String startMode = "client+server";
+            if (args.length > 0) {
+                startMode = args[0].toLowerCase();
+            }
+
+            /*Launch client daemon threads*/
+            if (!startMode.contains("server")) {
+                Thread clientDaemon = new Thread(new ProxyClientDaemon());
+                clientDaemon.start();
+                TimeUnit.MILLISECONDS.sleep(200);
+                printGreetingMessage(startMode);
+            } else {
+                SpringApplication.run(ProxyApplication.class, args);
+            }
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -41,8 +61,15 @@ public class ProxyApplication implements CommandLineRunner {
 
             Arrays.stream(args).forEach(System.out::println);
 
+            String startMode = "client+server";
+            if (args.length > 0) {
+                startMode = args[0].toLowerCase();
+            }
+
+            proxyController.setStartMode(startMode);
+
             /*Launch server daemon threads*/
-            if (args.length == 0 || args[0].equalsIgnoreCase("server+client") || args[0].equalsIgnoreCase("server")) {
+            if (startMode.contains("server")) {
                 Thread northDaemon = new Thread(new ProxyServerDaemonNorth());
                 northDaemon.start();
 
@@ -51,15 +78,26 @@ public class ProxyApplication implements CommandLineRunner {
             }
 
             /*Launch client daemon threads*/
-            if (args.length == 0 || args[0].equalsIgnoreCase("server+client") || args[0].equalsIgnoreCase("client")) {
+            if (startMode.contains("client")) {
                 Thread clientDaemon = new Thread(new ProxyClientDaemon());
                 clientDaemon.start();
             }
+
+            printGreetingMessage(startMode);
         };
     }
 
     @Override
     public void run(String... args) throws Exception {
         Arrays.stream(args).forEach(System.out::println);
+    }
+
+    private static void printGreetingMessage(String startMode) {
+        String printInfo = String.format("  Anti-Proxy Initialed: %s  ", startMode.toUpperCase());
+        int prefixLength = (PRINTLN_SEPARATOR_LINE.length() - printInfo.length()) / 2;
+        String prefixInfo = "-".repeat(prefixLength);
+        System.out.println(PRINTLN_SEPARATOR_LINE);
+        System.out.println(prefixInfo + printInfo + prefixInfo);
+        System.out.println(PRINTLN_SEPARATOR_LINE);
     }
 }
